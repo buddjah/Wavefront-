@@ -5,6 +5,7 @@
 #include <memory>
 #include "PluginProcessor.h"
 #include "UI/PathEditor/PathEditorComponent.h"
+#include "UI/LookAndFeel/WavefrontLookAndFeel.h"
 
 namespace wavefront
 {
@@ -36,11 +37,12 @@ private:
         std::unique_ptr<SliderAttachment> attachment;
     };
 
-    Knob& addKnob (const juce::String& paramID, const juce::String& text);
+    Knob& addKnob (const juce::String& paramID, const juce::String& text, juce::Colour accent);
     void updateModeButtons();
 
     WavefrontAudioProcessor& processorRef;
 
+    ui::WavefrontLookAndFeel lookAndFeel;
     ui::PathEditorComponent pathEditor;
 
     juce::TextButton pathModeBtn { "Path" }, listenerModeBtn { "Listener" }, measureModeBtn { "Measure" };

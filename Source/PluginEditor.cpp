@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "Params/ParameterIDs.h"
+#include "UI/LookAndFeel/WavefrontColours.h"
 
 namespace wavefront
 {
@@ -7,13 +8,15 @@ namespace wavefront
 WavefrontAudioProcessorEditor::WavefrontAudioProcessorEditor (WavefrontAudioProcessor& p)
     : AudioProcessorEditor (&p), processorRef (p), pathEditor (p)
 {
+    setLookAndFeel (&lookAndFeel);
     addAndMakeVisible (pathEditor);
 
-    // Sélecteur de mode (boutons radio).
+    // Sélecteur de mode (boutons radio) — accent violet (module Path).
     for (auto* b : { &pathModeBtn, &listenerModeBtn, &measureModeBtn })
     {
         b->setClickingTogglesState (true);
         b->setRadioGroupId (100);
+        b->setColour (juce::TextButton::buttonOnColourId, ui::colours::path.withAlpha (0.25f));
         addAndMakeVisible (*b);
     }
     pathModeBtn.setToggleState (true, juce::dontSendNotification);
@@ -22,18 +25,20 @@ WavefrontAudioProcessorEditor::WavefrontAudioProcessorEditor (WavefrontAudioProc
     listenerModeBtn.onClick = [this] { pathEditor.setMode (ui::PathEditorComponent::Mode::Listener); };
     measureModeBtn.onClick  = [this] { pathEditor.setMode (ui::PathEditorComponent::Mode::Measure); };
 
-    // Contrôles clés attachés à l'APVTS.
+    // Contrôles clés attachés à l'APVTS — accent par module.
     using namespace params;
-    addKnob (doppler::pathRate,      "Rate");
-    addKnob (doppler::worldScale,    "Scale");
-    addKnob (doppler::amount,        "Doppler");
-    addKnob (doppler::distanceAtten, "Distance");
-    addKnob (doppler::airAbsorption, "Air");
-    addKnob (granular::mix,          "Grain Mix");
-    addKnob (granular::pitch,        "Grain Pitch");
-    addKnob (global::dryWet,         "Dry/Wet");
-    addKnob (global::outputGain,     "Output");
+    using namespace ui::colours;
+    addKnob (doppler::pathRate,      "Rate",        path);
+    addKnob (doppler::worldScale,    "Scale",       path);
+    addKnob (doppler::amount,        "Doppler",     physics);
+    addKnob (doppler::distanceAtten, "Distance",    physics);
+    addKnob (doppler::airAbsorption, "Air",         physics);
+    addKnob (granular::mix,          "Grain Mix",   sampler);
+    addKnob (granular::pitch,        "Grain Pitch", sampler);
+    addKnob (global::dryWet,         "Dry/Wet",     effects);
+    addKnob (global::outputGain,     "Output",      effects);
 
+    granularToggle.setColour (juce::ToggleButton::tickColourId, ui::colours::sampler);
     addAndMakeVisible (granularToggle);
     granularAttachment = std::make_unique<ButtonAttachment> (
         processorRef.getValueTree(), granular::enable, granularToggle);
@@ -43,14 +48,19 @@ WavefrontAudioProcessorEditor::WavefrontAudioProcessorEditor (WavefrontAudioProc
     setSize (940, 640);
 }
 
-WavefrontAudioProcessorEditor::~WavefrontAudioProcessorEditor() = default;
+WavefrontAudioProcessorEditor::~WavefrontAudioProcessorEditor()
+{
+    setLookAndFeel (nullptr);
+}
 
 WavefrontAudioProcessorEditor::Knob& WavefrontAudioProcessorEditor::addKnob (const juce::String& paramID,
-                                                                             const juce::String& text)
+                                                                             const juce::String& text,
+                                                                             juce::Colour accent)
 {
     auto k = std::make_unique<Knob>();
     k->slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
     k->slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 68, 16);
+    k->slider.setColour (juce::Slider::rotarySliderFillColourId, accent);
     addAndMakeVisible (k->slider);
 
     k->label.setText (text, juce::dontSendNotification);

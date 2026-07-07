@@ -93,6 +93,10 @@ target_sources(Wavefront
 
         Source/UI/PathEditor/PathEditorComponent.cpp
         Source/UI/PathEditor/PathEditorComponent.h
+
+        Source/UI/LookAndFeel/WavefrontLookAndFeel.cpp
+        Source/UI/LookAndFeel/WavefrontLookAndFeel.h
+        Source/UI/LookAndFeel/WavefrontColours.h
 )
 
 target_compile_definitions(Wavefront

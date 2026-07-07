@@ -11,7 +11,8 @@ target_sources(wavefront_render_ui
         ${CMAKE_SOURCE_DIR}/Source/PluginEditor.cpp
         ${CMAKE_SOURCE_DIR}/Source/Params/Parameters.cpp
         ${CMAKE_SOURCE_DIR}/Source/DSP/DopplerEngine.cpp
-        ${CMAKE_SOURCE_DIR}/Source/UI/PathEditor/PathEditorComponent.cpp)
+        ${CMAKE_SOURCE_DIR}/Source/UI/PathEditor/PathEditorComponent.cpp
+        ${CMAKE_SOURCE_DIR}/Source/UI/LookAndFeel/WavefrontLookAndFeel.cpp)
 
 target_include_directories(wavefront_render_ui PRIVATE ${CMAKE_SOURCE_DIR}/Source)
 
