@@ -57,8 +57,9 @@ Livré :
   (oversamplée ×4 séparément) -> Compression -> Delay stéréo -> Tremolo,
   chaque étage avec bypass ; destinations de modulation câblées (trem depth,
   delay time, dist drive) ;
-- gestion des presets (`PresetManager`) : 6 presets d'usine en code +
-  presets utilisateur en XML (sauvegarde/chargement fichier), remise à zéro
+- gestion des presets (`PresetManager`) : 11 presets d'usine en code (dont 5
+  presets « instrument » qui chargent leur propre sample factory via callback)
+  + presets utilisateur en XML (sauvegarde/chargement fichier), remise à zéro
   déterministe avant application ;
 - UI : ComboBox de presets (Factory / User) + bouton Save (dialogue de nom) ;
 - validation headless « torture test » du plugin (multi-fréquences,
@@ -75,9 +76,10 @@ Livré :
 - Chargement : fichiers utilisateur (WAV/AIFF/FLAC via `FileChooser`) **ou**
   samples factory embarqués (`BinaryData`). La source choisie est persistée
   dans l'état (`samplerSource`) et rechargée à l'ouverture.
-- **Contenu factory** : 3 samples procéduraux libres de droits générés par
-  `tools/generate_factory_samples.py` (sweep sinus, accord pad, sweep de bruit),
-  embarqués automatiquement (tout WAV de `Resources/Samples/`).
+- **Contenu factory** : 8 samples procéduraux libres de droits générés par
+  `tools/generate_factory_samples.py` (sweep sinus, accord pad, sweep de bruit,
+  pluck, cloche, sub pulse rythmique, voyelle /a/, drone métallique), embarqués
+  automatiquement (tout WAV de `Resources/Samples/`).
 - UI : bande sampler (toggle, sélecteur factory, bouton Load, Loop) + rotatifs
   Smp Gain / Smp Pitch.
 

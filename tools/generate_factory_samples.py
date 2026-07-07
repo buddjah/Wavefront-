@@ -90,9 +90,110 @@ def noise_sweep():
     return out
 
 
+def pluck():
+    """Plucks harmoniques répétés (boucle-friendly)."""
+    n = int(SR * DURATION)
+    hits = 4
+    hit_len = n // hits
+    freq = 196.0  # G3
+    out = [0.0] * n
+    for h in range(hits):
+        start = h * hit_len
+        for i in range(hit_len):
+            t = i / SR
+            s = 0.0
+            for k in range(1, 9):
+                s += (1.0 / k) * math.sin(2 * math.pi * freq * k * (start + i) / SR)
+            decay = math.exp(-4.0 * t)  # extinction rapide
+            out[start + i] = s / 3.0 * decay
+    return out
+
+
+def bell():
+    """Cloche : partiels inharmoniques amortis, répétés."""
+    n = int(SR * DURATION)
+    hits = 3
+    hit_len = n // hits
+    base = 440.0
+    ratios = [1.0, 2.76, 5.40, 8.93, 13.34]
+    decays = [3.0, 3.5, 4.5, 6.0, 8.0]
+    out = [0.0] * n
+    for h in range(hits):
+        start = h * hit_len
+        for i in range(hit_len):
+            t = i / SR
+            s = 0.0
+            for r, d in zip(ratios, decays):
+                s += math.exp(-d * t) * math.sin(2 * math.pi * base * r * (start + i) / SR)
+            out[start + i] = s / len(ratios)
+    return out
+
+
+def sub_pulse():
+    """Basse sinus 55 Hz gatée en croches (~120 bpm) — rythmique, boucle."""
+    n = int(SR * DURATION)
+    freq = 55.0
+    rate = 4.0  # gates par seconde
+    out = []
+    for i in range(n):
+        gate_phase = (i / SR * rate) % 1.0
+        gate = math.exp(-6.0 * gate_phase)  # enveloppe percussive par croche
+        out.append(math.sin(2 * math.pi * freq * i / SR) * gate)
+    return out
+
+
+def vowel_aah():
+    """Voyelle /a/ synthétique : saw filtré par 3 formants (additif pondéré)."""
+    n = int(SR * DURATION)
+    f0 = 130.81  # C3
+    formants = [(700.0, 80.0), (1220.0, 90.0), (2600.0, 120.0)]
+
+    def formant_gain(f):
+        g = 0.02
+        for fc, bw in formants:
+            g += math.exp(-((f - fc) ** 2) / (2 * bw * bw))
+        return g
+
+    # Pré-calcul des amplitudes d'harmoniques.
+    harmonics = []
+    k = 1
+    while f0 * k < SR / 2:
+        harmonics.append((f0 * k, (1.0 / k) * formant_gain(f0 * k)))
+        k += 1
+
+    out = []
+    for i in range(n):
+        s = 0.0
+        for f, a in harmonics:
+            s += a * math.sin(2 * math.pi * f * i / SR)
+        vib = 1.0 + 0.01 * math.sin(2 * math.pi * 5.0 * i / SR)  # léger vibrato
+        out.append(s * vib * env(i, n, 0.2, 0.3))
+    return out
+
+
+def metal_drone():
+    """Drone métallique : partiels désaccordés soutenus, battements lents."""
+    n = int(SR * DURATION)
+    base = 110.0
+    partials = [1.0, 1.5, 2.01, 2.67, 3.99, 5.13]
+    detune = [1.0, 1.002, 0.998, 1.004, 0.997, 1.001]
+    out = []
+    for i in range(n):
+        s = 0.0
+        for p, d in zip(partials, detune):
+            s += math.sin(2 * math.pi * base * p * d * i / SR)
+        out.append(s / len(partials) * env(i, n, 0.3, 0.3))
+    return out
+
+
 if __name__ == "__main__":
     print("Génération des samples factory :")
     write_wav("01_Sine_Sweep.wav", sine_sweep())
     write_wav("02_Pad_Chord.wav", pad_chord())
     write_wav("03_Noise_Sweep.wav", noise_sweep())
+    write_wav("04_Pluck.wav", pluck())
+    write_wav("05_Bell.wav", bell())
+    write_wav("06_Sub_Pulse.wav", sub_pulse())
+    write_wav("07_Vowel_Aah.wav", vowel_aah())
+    write_wav("08_Metal_Drone.wav", metal_drone())
     print("Terminé.")

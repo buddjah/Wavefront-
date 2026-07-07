@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include <vector>
+#include <functional>
 
 namespace wavefront::presets
 {
@@ -32,11 +33,16 @@ public:
 
     static juce::File getUserPresetDirectory();
 
+    /** Callback fourni par le processeur pour charger un sample factory par nom
+        (les presets peuvent référencer un sample). */
+    std::function<void (const juce::String&)> onLoadFactorySample;
+
 private:
     struct FactoryPreset
     {
         juce::String name;
         std::vector<std::pair<juce::String, float>> values; // {paramID, valeur réelle}
+        juce::String factorySample {};                       // sample factory à charger (optionnel)
     };
 
     void resetToDefaults();

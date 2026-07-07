@@ -151,6 +151,35 @@ int main()
         }
     }
 
+    // Preset « instrument » : charge un preset qui référence un sample factory,
+    // entrée muette -> sortie audible (valide le callback preset -> sample).
+    {
+        wavefront::WavefrontAudioProcessor p;
+        p.prepareToPlay (48000.0, 512);
+
+        auto& pm = p.getPresetManager();
+        int padIdx = -1;
+        for (int i = 0; i < pm.getNumFactoryPresets(); ++i)
+            if (pm.getFactoryPresetName (i) == "Pad Voyager") padIdx = i;
+        check (padIdx >= 0, "Preset 'Pad Voyager' present");
+
+        if (padIdx >= 0)
+        {
+            pm.loadFactoryPreset (padIdx);
+            juce::MidiBuffer midi;
+            double rms = 0.0; int count = 0;
+            for (int blk = 0; blk < 20; ++blk)
+            {
+                juce::AudioBuffer<float> buf (2, 512);
+                buf.clear();
+                p.processBlock (buf, midi);
+                for (int i = 0; i < 512; ++i) { const float v = buf.getSample (0, i); rms += (double) v * v; ++count; }
+            }
+            rms = std::sqrt (rms / juce::jmax (1, count));
+            check (rms > 1.0e-3, "Preset instrument charge son sample et sonne (rms>0)");
+        }
+    }
+
     if (failures == 0)
         std::printf ("Validation plugin : tout est OK.\n");
     else

@@ -203,6 +203,7 @@ void WavefrontAudioProcessorEditor::handlePresetSelection()
     else
         pm.loadUserPreset (presetBox.getItemText (presetBox.getSelectedItemIndex()));
 
+    updateSampleNameLabel(); // un preset peut charger un sample
     repaint();
 }
 

@@ -52,6 +52,12 @@ WavefrontAudioProcessor::WavefrontAudioProcessor()
     }
 
     formatManager.registerBasicFormats();
+
+    // Les presets d'usine peuvent référencer un sample factory.
+    presetManager.onLoadFactorySample = [this] (const juce::String& name)
+    {
+        loadFactorySampleByName (name);
+    };
 }
 
 WavefrontAudioProcessor::~WavefrontAudioProcessor() = default;
@@ -304,6 +310,13 @@ void WavefrontAudioProcessor::loadFactorySample (int index)
         samplerEngine.setSample (s);
         apvts.state.setProperty ("samplerSource", "factory:" + display, nullptr);
     }
+}
+
+void WavefrontAudioProcessor::loadFactorySampleByName (const juce::String& name)
+{
+    const int idx = getFactorySampleNames().indexOf (name);
+    if (idx >= 0)
+        loadFactorySample (idx);
 }
 
 void WavefrontAudioProcessor::loadSampleFile (const juce::File& file)

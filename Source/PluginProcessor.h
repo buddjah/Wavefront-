@@ -61,6 +61,7 @@ public:
     // ---- Chargement des samples (thread message) ----
     juce::StringArray getFactorySampleNames() const;
     void loadFactorySample (int index);
+    void loadFactorySampleByName (const juce::String& name);
     void loadSampleFile (const juce::File& file);
     juce::String getLoadedSampleName() const { return samplerEngine.getLoadedName(); }
 
