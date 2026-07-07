@@ -90,6 +90,9 @@ target_sources(Wavefront
         Source/DSP/Granular/GranularEngine.h
         Source/DSP/Modulation/LFO.h
         Source/DSP/Modulation/ModMatrix.h
+
+        Source/UI/PathEditor/PathEditorComponent.cpp
+        Source/UI/PathEditor/PathEditorComponent.h
 )
 
 target_compile_definitions(Wavefront
@@ -121,3 +124,11 @@ target_include_directories(Wavefront
 # ----------------------------------------------------------------------------
 enable_testing()
 add_subdirectory(Tests)
+
+# ----------------------------------------------------------------------------
+#  Outils de développement (optionnels) — ex. rendu de l'UI en PNG.
+# ----------------------------------------------------------------------------
+option(WAVEFRONT_BUILD_TOOLS "Construire les outils de dev (rendu UI, etc.)" OFF)
+if(WAVEFRONT_BUILD_TOOLS)
+    add_subdirectory(tools)
+endif()

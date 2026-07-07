@@ -52,3 +52,7 @@ _deps/
 # ==== Misc ====
 *.log
 Thumbs.db
+
+# Sorties de l'outil de rendu UI
+ui_preview.png
+scratch_*.png

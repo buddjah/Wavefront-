@@ -1,7 +1,10 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <vector>
+#include <memory>
 #include "PluginProcessor.h"
+#include "UI/PathEditor/PathEditorComponent.h"
 
 namespace wavefront
 {
@@ -9,8 +12,9 @@ namespace wavefront
 /**
     Éditeur (UI) de Wavefront.
 
-    Phase 0 : fenêtre vide affichant simplement le nom du plugin. La direction
-    artistique néon et le Path Editor 2D seront implémentés dans les phases 3 et 4.
+    Phase 3 : Path Editor 2D au centre, sélecteur de mode (Path/Listener/Measure)
+    et bande de contrôles (rotatifs) attachés à l'APVTS pour les paramètres clés.
+    La direction artistique néon complète arrive en Phase 4.
 */
 class WavefrontAudioProcessorEditor : public juce::AudioProcessorEditor
 {
@@ -22,7 +26,29 @@ public:
     void resized() override;
 
 private:
+    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
+
+    struct Knob
+    {
+        juce::Slider slider;
+        juce::Label  label;
+        std::unique_ptr<SliderAttachment> attachment;
+    };
+
+    Knob& addKnob (const juce::String& paramID, const juce::String& text);
+    void updateModeButtons();
+
     WavefrontAudioProcessor& processorRef;
+
+    ui::PathEditorComponent pathEditor;
+
+    juce::TextButton pathModeBtn { "Path" }, listenerModeBtn { "Listener" }, measureModeBtn { "Measure" };
+
+    juce::ToggleButton granularToggle { "Granular" };
+    std::unique_ptr<ButtonAttachment> granularAttachment;
+
+    std::vector<std::unique_ptr<Knob>> knobs;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WavefrontAudioProcessorEditor)
 };
