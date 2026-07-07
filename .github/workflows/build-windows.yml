@@ -19,6 +19,9 @@ concurrency:
   group: build-windows-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -49,3 +52,22 @@ jobs:
           name: Wavefront-Windows-VST3
           path: artifact/
           if-no-files-found: error
+
+      # Publie le VST3 (zippé) sur une branche git dédiée, pour pouvoir le
+      # récupérer via git (les artifacts Actions sont servis depuis un host
+      # bloqué par la politique d'egress de l'environnement de dev).
+      - name: Publish VST3 to git branch
+        shell: bash
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          powershell -Command "Compress-Archive -Path artifact/Wavefront.vst3 -DestinationPath Wavefront-Windows-VST3.zip -Force"
+          SHA=$(git rev-parse --short HEAD)
+          cp Wavefront-Windows-VST3.zip /tmp/wf.zip
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan windows-build
+          git rm -rf . >/dev/null 2>&1 || true
+          cp /tmp/wf.zip Wavefront-Windows-VST3.zip
+          git add Wavefront-Windows-VST3.zip
+          git commit -m "Windows VST3 build ${SHA}"
+          git push -f origin windows-build
