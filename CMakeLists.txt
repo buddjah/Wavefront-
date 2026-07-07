@@ -77,6 +77,15 @@ target_sources(Wavefront
         Source/PluginProcessor.h
         Source/PluginEditor.cpp
         Source/PluginEditor.h
+
+        Source/Params/Parameters.cpp
+        Source/Params/Parameters.h
+        Source/Params/ParameterIDs.h
+
+        Source/DSP/HQFractionalDelay.h
+        Source/DSP/PathModel.h
+        Source/DSP/DopplerEngine.cpp
+        Source/DSP/DopplerEngine.h
 )
 
 target_compile_definitions(Wavefront

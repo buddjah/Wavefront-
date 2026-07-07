@@ -1,6 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Params/Parameters.h"
+#include "DSP/PathModel.h"
+#include "DSP/DopplerEngine.h"
 
 namespace wavefront
 {
@@ -8,9 +11,8 @@ namespace wavefront
 /**
     Processeur audio principal de Wavefront.
 
-    Phase 0 : squelette vide. Le signal passe en bypass (pass-through) le temps
-    que les moteurs DSP (Doppler/warping, granulaire, matrice de modulation,
-    effets post) soient implémentés dans les phases suivantes.
+    Phase 1 : moteur Doppler/warping HQ opérationnel (PathModel + DopplerEngine),
+    piloté par l'APVTS, avec mix dry/wet et gain de sortie.
 */
 class WavefrontAudioProcessor : public juce::AudioProcessor
 {
@@ -21,6 +23,7 @@ public:
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
+    using juce::AudioProcessor::processBlock; // évite le masquage de la surcharge double
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
     juce::AudioProcessorEditor* createEditor() override;
@@ -42,7 +45,34 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    // ---- Accès pour l'éditeur / UI ----
+    juce::AudioProcessorValueTreeState& getValueTree() noexcept { return apvts; }
+    dsp::PathModel&     getPathModel()     noexcept { return pathModel; }
+    dsp::DopplerEngine& getDopplerEngine() noexcept { return dopplerEngine; }
+
 private:
+    void pullParameters() noexcept;
+
+    juce::AudioProcessorValueTreeState apvts;
+
+    dsp::PathModel     pathModel;
+    dsp::DopplerEngine dopplerEngine;
+
+    juce::AudioBuffer<float> dryBuffer;
+    juce::SmoothedValue<float> dryWetSmoothed, outputGainSmoothed;
+
+    // Pointeurs bruts vers les paramètres (accès rapide, sans lookup par ID).
+    std::atomic<float>* pPathRate = nullptr;
+    std::atomic<float>* pWorldScale = nullptr;
+    std::atomic<float>* pSpeed = nullptr;
+    std::atomic<float>* pAmount = nullptr;
+    std::atomic<float>* pDistAtten = nullptr;
+    std::atomic<float>* pAir = nullptr;
+    std::atomic<float>* pListenerX = nullptr;
+    std::atomic<float>* pListenerY = nullptr;
+    std::atomic<float>* pDryWet = nullptr;
+    std::atomic<float>* pOutputGain = nullptr;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WavefrontAudioProcessor)
 };
 
