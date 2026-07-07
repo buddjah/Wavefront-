@@ -1,0 +1,51 @@
+name: Build Windows VST3
+
+# Build MSVC du VST3 sur un runner Windows, puis publication en artifact
+# téléchargeable. Déclenché à chaque push sur la branche de dev ou manuellement.
+
+on:
+  push:
+    branches:
+      - claude/unclear-request-86kjc8
+    paths:
+      - 'Source/**'
+      - 'Resources/**'
+      - 'CMakeLists.txt'
+      - 'cmake/**'
+      - '.github/workflows/build-windows.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure (CMake, MSVC)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build VST3 (Release)
+        run: cmake --build build --config Release --target Wavefront_VST3 --parallel
+
+      - name: Stage VST3
+        shell: pwsh
+        run: |
+          $vst3 = Get-ChildItem -Path build -Recurse -Directory -Filter 'Wavefront.vst3' | Select-Object -First 1
+          if (-not $vst3) { Write-Error 'Wavefront.vst3 introuvable'; exit 1 }
+          New-Item -ItemType Directory -Force -Path artifact | Out-Null
+          Copy-Item -Recurse -Force $vst3.FullName artifact/
+          Write-Host "VST3 mis en scene depuis : $($vst3.FullName)"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wavefront-Windows-VST3
+          path: artifact/
+          if-no-files-found: error
