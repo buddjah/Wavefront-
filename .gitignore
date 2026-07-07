@@ -1,0 +1,54 @@
+# ==== Build output ====
+Builds/
+build/
+build-*/
+cmake-build-*/
+out/
+install/
+
+# ==== CMake ====
+CMakeCache.txt
+CMakeFiles/
+CMakeUserPresets.json
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+# ==== JUCE / JuceLibraryCode ====
+JuceLibraryCode/
+*.jucer.user
+
+# ==== IDEs ====
+.vs/
+.vscode/
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+.idea/
+*.xcodeproj/
+*.DS_Store
+
+# ==== Compiled / binaries ====
+*.o
+*.obj
+*.exe
+*.dll
+*.lib
+*.pdb
+*.exp
+*.ilk
+*.vst3/
+*.a
+*.so
+*.dylib
+
+# ==== Dependencies fetched by CMake FetchContent ====
+_deps/
+
+# ==== Misc ====
+*.log
+Thumbs.db
