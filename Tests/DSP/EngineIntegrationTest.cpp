@@ -8,6 +8,7 @@
 #include "DSP/PathModel.h"
 #include "DSP/DopplerEngine.h"
 #include "DSP/Granular/GranularEngine.h"
+#include "DSP/Effects/EffectsChain.h"
 
 #include <cmath>
 #include <cstdio>
@@ -150,6 +151,43 @@ int main()
         check (st.allFinite, "Granulaire: sortie entierement finie");
         check (st.peak < 8.0f, "Granulaire: sortie bornee");
         check (st.rms > 1.0e-3, "Granulaire: sortie non silencieuse");
+    }
+
+    // -------------------------------------------------- Chaine d'effets
+    {
+        EffectsChain fx;
+        fx.prepare (sr, block, 2);
+        EffectsChain::Parameters ep;
+        ep.tremOn = true; ep.tremRate = 5.0f; ep.tremDepth = 0.6f;
+        ep.dlyOn = true;  ep.dlyTimeMs = 120.0f; ep.dlyFeedback = 0.4f; ep.dlyMix = 0.4f;
+        ep.distOn = true; ep.distDrive = 0.6f; ep.distMix = 0.8f;
+        ep.eqOn = true;   ep.eqLowGain = 3.0f; ep.eqMidGain = -4.0f; ep.eqMidFreq = 1500.0f; ep.eqHighGain = 2.0f;
+        ep.compOn = true; ep.compThreshold = -20.0f; ep.compRatio = 4.0f;
+        fx.setParameters (ep);
+
+        juce::AudioBuffer<float> buf (2, block);
+        std::vector<float> out;
+        double ph = 0.0;
+        const double inc = juce::MathConstants<double>::twoPi * inFreq / sr;
+
+        for (int b = 0; b < numBlocks; ++b)
+        {
+            for (int i = 0; i < block; ++i)
+            {
+                const float s = 0.5f * (float) std::sin (ph);
+                ph += inc;
+                buf.setSample (0, i, s);
+                buf.setSample (1, i, s);
+            }
+            fx.process (buf);
+            for (int i = 0; i < block; ++i)
+                out.push_back (buf.getSample (0, i));
+        }
+
+        auto st = analyze (out);
+        check (st.allFinite, "Effets: sortie entierement finie (tous actifs)");
+        check (st.peak < 8.0f, "Effets: sortie bornee");
+        check (st.rms > 1.0e-3, "Effets: sortie non silencieuse");
     }
 
     if (failures == 0)

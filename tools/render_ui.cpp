@@ -14,6 +14,15 @@ int main (int argc, char** argv)
     wavefront::WavefrontAudioProcessor proc;
     proc.prepareToPlay (48000.0, 512);
 
+    // Argument optionnel #2 : index de preset d'usine à charger avant le rendu.
+    if (argc > 2)
+    {
+        const int idx = juce::String (argv[2]).getIntValue();
+        proc.getPresetManager().loadFactoryPreset (idx);
+        std::printf ("Preset charge : %s\n",
+                     proc.getPresetManager().getFactoryPresetName (idx).toRawUTF8());
+    }
+
     std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor());
     if (editor == nullptr)
     {

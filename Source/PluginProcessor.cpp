@@ -53,6 +53,7 @@ void WavefrontAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     dopplerEngine.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels(), &pathModel);
     granularEngine.prepare (sampleRate, getTotalNumInputChannels());
     modMatrix.prepare (sampleRate);
+    effectsChain.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels());
 
     dryBuffer.setSize (getTotalNumInputChannels(), samplesPerBlock);
 
@@ -69,6 +70,7 @@ void WavefrontAudioProcessor::releaseResources()
     dopplerEngine.reset();
     granularEngine.reset();
     modMatrix.reset();
+    effectsChain.reset();
 }
 
 bool WavefrontAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -139,6 +141,33 @@ void WavefrontAudioProcessor::pullParameters (int numSamples) noexcept
     gp.pitchSt = juce::jlimit (-24.0f, 24.0f, pGrPitch->load() + 12.0f * m (ModDest::GrainPitch));
     granularEngine.setParameters (gp);
 
+    // --- Effets post (base + modulation pour trem depth / delay time / drive) ---
+    using namespace params::fx;
+    auto gv = [this] (const char* id) { return apvts.getRawParameterValue (id)->load(); };
+
+    EffectsChain::Parameters ep;
+    ep.tremOn        = gv (tremEnable) > 0.5f;
+    ep.tremRate      = gv (tremRate);
+    ep.tremDepth     = juce::jlimit (0.0f, 1.0f, gv (tremDepth) + 0.5f * m (ModDest::TremDepth));
+    ep.dlyOn         = gv (dlyEnable) > 0.5f;
+    ep.dlyTimeMs     = juce::jlimit (1.0f, 2000.0f, gv (dlyTime) * (1.0f + 0.5f * m (ModDest::DelayTime)));
+    ep.dlyFeedback   = gv (dlyFeedback);
+    ep.dlyMix        = gv (dlyMix);
+    ep.distOn        = gv (distEnable) > 0.5f;
+    ep.distDrive     = juce::jlimit (0.0f, 1.0f, gv (distDrive) + 0.5f * m (ModDest::DistDrive));
+    ep.distMix       = gv (distMix);
+    ep.eqOn          = gv (eqEnable) > 0.5f;
+    ep.eqLowGain     = gv (eqLowGain);
+    ep.eqMidGain     = gv (eqMidGain);
+    ep.eqMidFreq     = gv (eqMidFreq);
+    ep.eqHighGain    = gv (eqHighGain);
+    ep.compOn        = gv (compEnable) > 0.5f;
+    ep.compThreshold = gv (compThresh);
+    ep.compRatio     = gv (compRatio);
+    ep.compAttack    = gv (compAttack);
+    ep.compRelease   = gv (compRelease);
+    effectsChain.setParameters (ep);
+
     const float outGainDb = pOutputGain->load() + 6.0f * m (ModDest::OutputGain);
     dryWetSmoothed.setTargetValue (pDryWet->load());
     outputGainSmoothed.setTargetValue (juce::Decibels::decibelsToGain (outGainDb));
@@ -164,9 +193,10 @@ void WavefrontAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (int ch = 0; ch < totalIn; ++ch)
         dryBuffer.copyFrom (ch, 0, buffer, ch, 0, numSamples);
 
-    // Chaîne « wet » (en place) : Doppler -> Granulaire.
+    // Chaîne « wet » (en place) : Doppler -> Granulaire -> Effets post.
     dopplerEngine.process (buffer);
     granularEngine.process (buffer, dopplerEngine.getPhase());
+    effectsChain.process (buffer);
 
     // Mix dry/wet + gain de sortie, échantillon par échantillon (anti-zipper).
     for (int i = 0; i < numSamples; ++i)

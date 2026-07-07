@@ -29,7 +29,8 @@ juce_generate_juce_header(wavefront_engine_tests)
 target_sources(wavefront_engine_tests
     PRIVATE
         EngineIntegrationTest.cpp
-        ${CMAKE_SOURCE_DIR}/Source/DSP/DopplerEngine.cpp)
+        ${CMAKE_SOURCE_DIR}/Source/DSP/DopplerEngine.cpp
+        ${CMAKE_SOURCE_DIR}/Source/DSP/Effects/EffectsChain.cpp)
 target_include_directories(wavefront_engine_tests
     PRIVATE ${CMAKE_SOURCE_DIR}/Source)
 target_compile_definitions(wavefront_engine_tests

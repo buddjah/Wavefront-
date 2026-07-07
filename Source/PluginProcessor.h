@@ -7,6 +7,8 @@
 #include "DSP/DopplerEngine.h"
 #include "DSP/Granular/GranularEngine.h"
 #include "DSP/Modulation/ModMatrix.h"
+#include "DSP/Effects/EffectsChain.h"
+#include "Presets/PresetManager.h"
 
 namespace wavefront
 {
@@ -52,16 +54,19 @@ public:
     juce::AudioProcessorValueTreeState& getValueTree() noexcept { return apvts; }
     dsp::PathModel&     getPathModel()     noexcept { return pathModel; }
     dsp::DopplerEngine& getDopplerEngine() noexcept { return dopplerEngine; }
+    presets::PresetManager& getPresetManager() noexcept { return presetManager; }
 
 private:
     void pullParameters (int numSamples) noexcept;
 
     juce::AudioProcessorValueTreeState apvts;
+    presets::PresetManager presetManager { apvts };
 
     dsp::PathModel      pathModel;
     dsp::DopplerEngine  dopplerEngine;
     dsp::GranularEngine granularEngine;
     dsp::ModMatrix      modMatrix;
+    dsp::EffectsChain   effectsChain;
 
     juce::AudioBuffer<float> dryBuffer;
     juce::SmoothedValue<float> dryWetSmoothed, outputGainSmoothed;

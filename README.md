@@ -16,12 +16,12 @@ Editor 2D**. Projet personnel / portfolio.
 
 | Phase | Contenu | Statut |
 |---|---|---|
-| **0** | Init dépôt, squelette JUCE/CMake, VST3 vide compilable | ✅ en cours |
-| 1 | Moteur Doppler/warping HQ | à venir |
-| 2 | Moteur granulaire + matrice de modulation | à venir |
-| 3 | UI du Path Editor 2D | à venir |
-| 4 | Direction artistique néon / LookAndFeel | à venir |
-| 5 | Sampler, presets, polish, validation `pluginval` | à venir |
+| **0** | Init dépôt, squelette JUCE/CMake, VST3 vide compilable | ✅ |
+| **1** | Moteur Doppler/warping HQ | ✅ |
+| **2** | Moteur granulaire + matrice de modulation | ✅ |
+| **3** | UI du Path Editor 2D | ✅ |
+| **4** | Direction artistique néon / LookAndFeel | ✅ |
+| **5** | Effets post + presets + validation | ✅ (sampler de fichiers = suite) |
 
 Voir [`docs/PHASES.md`](docs/PHASES.md) pour le détail.
 
@@ -42,6 +42,23 @@ Le `.vst3` généré se trouve dans l'arborescence de build de JUCE
 
 ```bash
 ctest --test-dir build --output-on-failure
+```
+
+Tests DSP (interpolateur Lagrange, intégration Doppler/granulaire/effets) —
+indépendants de l'UI. Une validation « torture test » headless du plugin
+complet (multi-fréquences, multi-blocs, entrées pathologiques, round-trip
+d'état) est disponible en activant les outils :
+
+```bash
+cmake -B build -DWAVEFRONT_BUILD_TOOLS=ON
+cmake --build build
+ctest --test-dir build            # inclut wavefront_plugin_validation
+```
+
+Sous Windows, valider aussi avec [`pluginval`](https://github.com/Tracktion/pluginval) :
+
+```bat
+pluginval --strictness-level 8 --validate path\to\Wavefront.vst3
 ```
 
 ## Arborescence

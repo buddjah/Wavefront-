@@ -90,6 +90,11 @@ target_sources(Wavefront
         Source/DSP/Granular/GranularEngine.h
         Source/DSP/Modulation/LFO.h
         Source/DSP/Modulation/ModMatrix.h
+        Source/DSP/Effects/EffectsChain.cpp
+        Source/DSP/Effects/EffectsChain.h
+
+        Source/Presets/PresetManager.cpp
+        Source/Presets/PresetManager.h
 
         Source/UI/PathEditor/PathEditorComponent.cpp
         Source/UI/PathEditor/PathEditorComponent.h

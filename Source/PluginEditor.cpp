@@ -43,6 +43,15 @@ WavefrontAudioProcessorEditor::WavefrontAudioProcessorEditor (WavefrontAudioProc
     granularAttachment = std::make_unique<ButtonAttachment> (
         processorRef.getValueTree(), granular::enable, granularToggle);
 
+    // Presets.
+    addAndMakeVisible (presetBox);
+    presetBox.setTextWhenNothingSelected ("Presets");
+    presetBox.onChange = [this] { handlePresetSelection(); };
+    refreshPresetBox();
+
+    addAndMakeVisible (savePresetBtn);
+    savePresetBtn.onClick = [this] { saveUserPreset(); };
+
     setResizable (true, true);
     setResizeLimits (760, 520, 2560, 1600);
     setSize (940, 640);
@@ -79,21 +88,26 @@ void WavefrontAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillAll (juce::Colour (0xff07070d));
 
     // Bandeau titre.
-    g.setColour (juce::Colour (0xff9d4edd));
+    auto top = getLocalBounds().removeFromTop (38).reduced (12, 0);
+    g.setColour (ui::colours::path);
     g.setFont (juce::Font (juce::FontOptions (20.0f, juce::Font::bold)));
-    g.drawText ("WAVEFRONT", getLocalBounds().removeFromTop (34).reduced (12, 0),
-                juce::Justification::left, false);
+    g.drawText ("WAVEFRONT", top, juce::Justification::left, false);
 
-    g.setColour (juce::Colours::grey);
+    g.setColour (ui::colours::dimText);
     g.setFont (juce::Font (juce::FontOptions (11.0f)));
-    g.drawText ("Doppler / warping", getLocalBounds().removeFromTop (34).reduced (12, 0),
-                juce::Justification::right, false);
+    g.drawText ("Doppler / warping", top.withTrimmedLeft (150),
+                juce::Justification::left, false);
 }
 
 void WavefrontAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds();
-    area.removeFromTop (34); // bandeau
+    auto top = area.removeFromTop (38); // bandeau
+
+    // Contrôles de presets à droite du bandeau.
+    auto presetArea = top.removeFromRight (300).reduced (6, 7);
+    savePresetBtn.setBounds (presetArea.removeFromRight (60).reduced (2, 0));
+    presetBox.setBounds (presetArea.reduced (2, 0));
 
     // Bande de contrôles en bas.
     auto controls = area.removeFromBottom (110);
@@ -124,6 +138,62 @@ void WavefrontAudioProcessorEditor::resized()
     }
 }
 
-void WavefrontAudioProcessorEditor::updateModeButtons() {}
+void WavefrontAudioProcessorEditor::refreshPresetBox()
+{
+    auto& pm = processorRef.getPresetManager();
+    presetBox.clear (juce::dontSendNotification);
+
+    presetBox.addSectionHeading ("Factory");
+    for (int i = 0; i < pm.getNumFactoryPresets(); ++i)
+        presetBox.addItem (pm.getFactoryPresetName (i), i + 1); // ids 1..N
+
+    const auto users = pm.getUserPresetNames();
+    if (! users.isEmpty())
+    {
+        presetBox.addSeparator();
+        presetBox.addSectionHeading ("User");
+        for (int i = 0; i < users.size(); ++i)
+            presetBox.addItem (users[i], 1000 + i); // ids 1000+
+    }
+}
+
+void WavefrontAudioProcessorEditor::handlePresetSelection()
+{
+    const int id = presetBox.getSelectedId();
+    if (id <= 0) return;
+
+    auto& pm = processorRef.getPresetManager();
+    if (id < 1000)
+        pm.loadFactoryPreset (id - 1);
+    else
+        pm.loadUserPreset (presetBox.getItemText (presetBox.getSelectedItemIndex()));
+
+    repaint();
+}
+
+void WavefrontAudioProcessorEditor::saveUserPreset()
+{
+    saveDialog = std::make_unique<juce::AlertWindow> (
+        "Save preset", "Nom du preset utilisateur :", juce::MessageBoxIconType::NoIcon);
+    saveDialog->addTextEditor ("name", "My Preset");
+    saveDialog->addButton ("Save",   1, juce::KeyPress (juce::KeyPress::returnKey));
+    saveDialog->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+
+    saveDialog->enterModalState (true, juce::ModalCallbackFunction::create (
+        [this] (int result)
+        {
+            if (result == 1 && saveDialog != nullptr)
+            {
+                const auto name = saveDialog->getTextEditorContents ("name").trim();
+                if (name.isNotEmpty())
+                {
+                    processorRef.getPresetManager().saveUserPreset (name);
+                    refreshPresetBox();
+                    presetBox.setText (name, juce::dontSendNotification);
+                }
+            }
+            saveDialog.reset();
+        }), false);
+}
 
 } // namespace wavefront

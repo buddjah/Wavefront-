@@ -43,8 +43,34 @@ Livré :
   Effets = turquoise, Mod Matrix = orange ;
 - glow via double-tracé.
 
-## Phase 5 — Sampler complet, presets, polish, validation
+## Phase 4 — Direction artistique néon ✅
 
-- sampler complet, contenu factory (samples / presets) ;
-- polish général ;
-- validation `pluginval`.
+- `WavefrontLookAndFeel` (rotatifs à arc néon avec glow par double tracé) ;
+- palette d'accents par module (`WavefrontColours`) : Path=violet,
+  Physique=cyan, Sampler=vert, Effets=turquoise, Mod Matrix=orange ;
+- accent appliqué par module sur chaque contrôle de l'éditeur.
+
+## Phase 5 — Effets post, presets, validation ✅ (sampler = suite)
+
+Livré :
+- chaîne d'effets post (`EffectsChain`) : EQ 3 bandes -> Distortion
+  (oversamplée ×4 séparément) -> Compression -> Delay stéréo -> Tremolo,
+  chaque étage avec bypass ; destinations de modulation câblées (trem depth,
+  delay time, dist drive) ;
+- gestion des presets (`PresetManager`) : 6 presets d'usine en code +
+  presets utilisateur en XML (sauvegarde/chargement fichier), remise à zéro
+  déterministe avant application ;
+- UI : ComboBox de presets (Factory / User) + bouton Save (dialogue de nom) ;
+- validation headless « torture test » du plugin (multi-fréquences,
+  multi-blocs, entrées pathologiques, balayage de paramètres, round-trip
+  d'état) — cible CTest `wavefront_plugin_validation`.
+
+### Reste à faire (suite de la Phase 5)
+
+- **Sampler de fichiers** : lecture d'échantillons audio chargés (glisser un
+  WAV, le faire « voyager » sur la trajectoire) — distinct du moteur
+  granulaire actuel qui granule le signal d'entrée. À spécifier/produire avec
+  le contenu factory (samples), laissé volontairement en aval dans le cahier
+  des charges.
+- Contenu factory (banque de samples, presets additionnels).
+- Passage `pluginval --strictness-level 10` sous Windows.

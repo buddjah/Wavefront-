@@ -38,12 +38,18 @@ private:
     };
 
     Knob& addKnob (const juce::String& paramID, const juce::String& text, juce::Colour accent);
-    void updateModeButtons();
+    void refreshPresetBox();
+    void handlePresetSelection();
+    void saveUserPreset();
 
     WavefrontAudioProcessor& processorRef;
 
     ui::WavefrontLookAndFeel lookAndFeel;
     ui::PathEditorComponent pathEditor;
+
+    juce::ComboBox   presetBox;
+    juce::TextButton savePresetBtn { "Save" };
+    std::unique_ptr<juce::AlertWindow> saveDialog;
 
     juce::TextButton pathModeBtn { "Path" }, listenerModeBtn { "Listener" }, measureModeBtn { "Measure" };
 
