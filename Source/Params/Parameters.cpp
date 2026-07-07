@@ -87,6 +87,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
                 [] (float v, int) { return juce::String (v, 2) + " st"; })));
     }
 
+    // ---------------------------------------------------------------- Sampler
+    {
+        using namespace sampler;
+        layout.add (std::make_unique<APB> (juce::ParameterID { enable, kStateVersion },
+            "Sampler Enable", false));
+        layout.add (std::make_unique<APF> (juce::ParameterID { gain, kStateVersion },
+            "Sampler Gain", Range (-60.0f, 12.0f, 0.1f), -6.0f,
+            juce::AudioParameterFloatAttributes().withStringFromValueFunction (dbFormat)));
+        layout.add (std::make_unique<APB> (juce::ParameterID { loop, kStateVersion },
+            "Sampler Loop", true));
+        layout.add (std::make_unique<APF> (juce::ParameterID { pitch, kStateVersion },
+            "Sampler Pitch", Range (-24.0f, 24.0f, 0.01f), 0.0f,
+            juce::AudioParameterFloatAttributes().withStringFromValueFunction (
+                [] (float v, int) { return juce::String (v, 2) + " st"; })));
+    }
+
     // ------------------------------------------------------------------- LFOs
     {
         using namespace mod;

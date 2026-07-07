@@ -8,6 +8,7 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
+#include "Params/ParameterIDs.h"
 
 #include <cstdio>
 #include <vector>
@@ -116,6 +117,38 @@ int main()
         juce::MemoryBlock state2;
         b.getStateInformation (state2);
         check (state == state2, "Round-trip sauvegarde/restauration d'etat");
+    }
+
+    // Sampler comme instrument : factory sample embarqué -> entrée muette ->
+    // sortie audible (valide BinaryData -> SamplerEngine -> Doppler).
+    {
+        wavefront::WavefrontAudioProcessor p;
+        p.prepareToPlay (48000.0, 512);
+
+        const auto names = p.getFactorySampleNames();
+        check (names.size() >= 1, "Factory samples embarques presents");
+
+        if (names.size() >= 1)
+        {
+            p.loadFactorySample (0);
+            auto& t = p.getValueTree();
+            t.getParameter (wavefront::params::sampler::enable)->setValueNotifyingHost (1.0f);
+            t.getParameter (wavefront::params::sampler::gain)
+                ->setValueNotifyingHost (t.getParameter (wavefront::params::sampler::gain)->convertTo0to1 (0.0f));
+            t.getParameter (wavefront::params::global::dryWet)->setValueNotifyingHost (0.0f); // 100% dry = source brute
+
+            juce::MidiBuffer midi;
+            double rms = 0.0; int count = 0;
+            for (int blk = 0; blk < 20; ++blk)
+            {
+                juce::AudioBuffer<float> buf (2, 512);
+                buf.clear(); // aucune entrée hôte
+                p.processBlock (buf, midi);
+                for (int i = 0; i < 512; ++i) { const float v = buf.getSample (0, i); rms += (double) v * v; ++count; }
+            }
+            rms = std::sqrt (rms / juce::jmax (1, count));
+            check (rms > 1.0e-3, "Sampler joue le factory sample sans entree hote (rms>0)");
+        }
     }
 
     if (failures == 0)

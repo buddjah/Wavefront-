@@ -8,6 +8,7 @@
 #include "DSP/Granular/GranularEngine.h"
 #include "DSP/Modulation/ModMatrix.h"
 #include "DSP/Effects/EffectsChain.h"
+#include "DSP/Sampler/SamplerEngine.h"
 #include "Presets/PresetManager.h"
 
 namespace wavefront
@@ -55,6 +56,13 @@ public:
     dsp::PathModel&     getPathModel()     noexcept { return pathModel; }
     dsp::DopplerEngine& getDopplerEngine() noexcept { return dopplerEngine; }
     presets::PresetManager& getPresetManager() noexcept { return presetManager; }
+    dsp::SamplerEngine& getSamplerEngine() noexcept { return samplerEngine; }
+
+    // ---- Chargement des samples (thread message) ----
+    juce::StringArray getFactorySampleNames() const;
+    void loadFactorySample (int index);
+    void loadSampleFile (const juce::File& file);
+    juce::String getLoadedSampleName() const { return samplerEngine.getLoadedName(); }
 
 private:
     void pullParameters (int numSamples) noexcept;
@@ -67,6 +75,11 @@ private:
     dsp::GranularEngine granularEngine;
     dsp::ModMatrix      modMatrix;
     dsp::EffectsChain   effectsChain;
+    dsp::SamplerEngine  samplerEngine;
+    juce::AudioFormatManager formatManager;
+
+    dsp::SamplerEngine::Sample::Ptr makeSampleFromReader (juce::AudioFormatReader*, const juce::String& name);
+    void reloadSamplerSource();
 
     juce::AudioBuffer<float> dryBuffer;
     juce::SmoothedValue<float> dryWetSmoothed, outputGainSmoothed;
@@ -82,6 +95,12 @@ private:
     std::atomic<float>* pListenerY = nullptr;
     std::atomic<float>* pDryWet = nullptr;
     std::atomic<float>* pOutputGain = nullptr;
+
+    // Sampler.
+    std::atomic<float>* pSmpEnable = nullptr;
+    std::atomic<float>* pSmpGain = nullptr;
+    std::atomic<float>* pSmpLoop = nullptr;
+    std::atomic<float>* pSmpPitch = nullptr;
 
     // Granulaire.
     std::atomic<float>* pGrEnable = nullptr;

@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "Params/ParameterIDs.h"
+#include "BinaryData.h"
 
 namespace wavefront
 {
@@ -23,6 +24,11 @@ WavefrontAudioProcessor::WavefrontAudioProcessor()
     pDryWet     = apvts.getRawParameterValue (global::dryWet);
     pOutputGain = apvts.getRawParameterValue (global::outputGain);
 
+    pSmpEnable  = apvts.getRawParameterValue (sampler::enable);
+    pSmpGain    = apvts.getRawParameterValue (sampler::gain);
+    pSmpLoop    = apvts.getRawParameterValue (sampler::loop);
+    pSmpPitch   = apvts.getRawParameterValue (sampler::pitch);
+
     pGrEnable   = apvts.getRawParameterValue (granular::enable);
     pGrMix      = apvts.getRawParameterValue (granular::mix);
     pGrSize     = apvts.getRawParameterValue (granular::grainMs);
@@ -44,6 +50,8 @@ WavefrontAudioProcessor::WavefrontAudioProcessor()
         pSlotDepth[(size_t) i]  = apvts.getRawParameterValue (mod::slotDepth (i));
         pSlotSmooth[(size_t) i] = apvts.getRawParameterValue (mod::slotSmooth (i));
     }
+
+    formatManager.registerBasicFormats();
 }
 
 WavefrontAudioProcessor::~WavefrontAudioProcessor() = default;
@@ -54,6 +62,8 @@ void WavefrontAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     granularEngine.prepare (sampleRate, getTotalNumInputChannels());
     modMatrix.prepare (sampleRate);
     effectsChain.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels());
+    samplerEngine.prepare (sampleRate, getTotalNumInputChannels());
+    reloadSamplerSource();
 
     dryBuffer.setSize (getTotalNumInputChannels(), samplesPerBlock);
 
@@ -71,6 +81,7 @@ void WavefrontAudioProcessor::releaseResources()
     granularEngine.reset();
     modMatrix.reset();
     effectsChain.reset();
+    samplerEngine.reset();
 }
 
 bool WavefrontAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -132,6 +143,13 @@ void WavefrontAudioProcessor::pullParameters (int numSamples) noexcept
     dp.listenerY     = pListenerY->load();
     dopplerEngine.setParameters (dp);
 
+    SamplerEngine::Parameters sp;
+    sp.enabled = pSmpEnable->load() > 0.5f;
+    sp.gainDb  = pSmpGain->load();
+    sp.loop    = pSmpLoop->load() > 0.5f;
+    sp.pitchSt = pSmpPitch->load();
+    samplerEngine.setParameters (sp);
+
     GranularEngine::Parameters gp;
     gp.enabled = pGrEnable->load() > 0.5f;
     gp.mix     = pGrMix->load();
@@ -188,7 +206,12 @@ void WavefrontAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     pullParameters (numSamples);
 
-    // Copie du signal dry pour le mix ultérieur.
+    // Le sampler s'ajoute au signal d'entrée pour former la source (le sample
+    // « voyage » ensuite sur la trajectoire). Ainsi Wavefront s'utilise aussi
+    // comme instrument (sans entrée hôte) : dry/wet à 100% wet = sample doppleré.
+    samplerEngine.render (buffer);
+
+    // Copie du signal dry (entrée hôte + sampler) pour le mix ultérieur.
     dryBuffer.setSize (totalIn, numSamples, false, false, true);
     for (int ch = 0; ch < totalIn; ++ch)
         dryBuffer.copyFrom (ch, 0, buffer, ch, 0, numSamples);
@@ -218,6 +241,100 @@ juce::AudioProcessorEditor* WavefrontAudioProcessor::createEditor()
     return new WavefrontAudioProcessorEditor (*this);
 }
 
+// ---- Sampler : chargement & persistance ----------------------------------
+
+static juce::String factoryResourceForName (const juce::String& displayName)
+{
+    // Retrouve le nom de ressource BinaryData à partir du nom de fichier d'origine.
+    for (int i = 0; i < BinaryData::namedResourceListSize; ++i)
+        if (auto* origin = BinaryData::getNamedResourceOriginalFilename (BinaryData::namedResourceList[i]))
+            if (juce::String (origin) == displayName)
+                return juce::String (BinaryData::namedResourceList[i]);
+    return {};
+}
+
+juce::StringArray WavefrontAudioProcessor::getFactorySampleNames() const
+{
+    juce::StringArray names;
+    for (int i = 0; i < BinaryData::namedResourceListSize; ++i)
+        if (auto* origin = BinaryData::getNamedResourceOriginalFilename (BinaryData::namedResourceList[i]))
+        {
+            const juce::String file (origin);
+            if (file.endsWithIgnoreCase (".wav"))
+                names.add (file);
+        }
+    names.sortNatural();
+    return names;
+}
+
+dsp::SamplerEngine::Sample::Ptr WavefrontAudioProcessor::makeSampleFromReader (
+    juce::AudioFormatReader* reader, const juce::String& name)
+{
+    if (reader == nullptr)
+        return {};
+
+    auto s = new dsp::SamplerEngine::Sample();
+    const int numCh = (int) juce::jmin<unsigned int> (2, reader->numChannels);
+    const int len = (int) reader->lengthInSamples;
+    s->data.setSize (juce::jmax (1, numCh), juce::jmax (1, len));
+    s->data.clear();
+    reader->read (&s->data, 0, len, 0, true, numCh > 1);
+    s->sourceSampleRate = reader->sampleRate > 0 ? reader->sampleRate : 44100.0;
+    s->name = name;
+    return dsp::SamplerEngine::Sample::Ptr (s);
+}
+
+void WavefrontAudioProcessor::loadFactorySample (int index)
+{
+    const auto names = getFactorySampleNames();
+    if (! juce::isPositiveAndBelow (index, names.size()))
+        return;
+
+    const auto display = names[index];
+    const auto resource = factoryResourceForName (display);
+    int size = 0;
+    const char* data = BinaryData::getNamedResource (resource.toRawUTF8(), size);
+    if (data == nullptr || size <= 0)
+        return;
+
+    std::unique_ptr<juce::AudioFormatReader> reader (
+        formatManager.createReaderFor (std::make_unique<juce::MemoryInputStream> (data, (size_t) size, false)));
+    if (auto s = makeSampleFromReader (reader.get(), display))
+    {
+        samplerEngine.setSample (s);
+        apvts.state.setProperty ("samplerSource", "factory:" + display, nullptr);
+    }
+}
+
+void WavefrontAudioProcessor::loadSampleFile (const juce::File& file)
+{
+    if (! file.existsAsFile())
+        return;
+
+    std::unique_ptr<juce::AudioFormatReader> reader (formatManager.createReaderFor (file));
+    if (auto s = makeSampleFromReader (reader.get(), file.getFileName()))
+    {
+        samplerEngine.setSample (s);
+        apvts.state.setProperty ("samplerSource", "file:" + file.getFullPathName(), nullptr);
+    }
+}
+
+void WavefrontAudioProcessor::reloadSamplerSource()
+{
+    const juce::String src = apvts.state.getProperty ("samplerSource", "").toString();
+    if (src.startsWith ("factory:"))
+    {
+        const auto display = src.fromFirstOccurrenceOf ("factory:", false, false);
+        const auto names = getFactorySampleNames();
+        const int idx = names.indexOf (display);
+        if (idx >= 0) loadFactorySample (idx);
+    }
+    else if (src.startsWith ("file:"))
+    {
+        loadSampleFile (juce::File (src.fromFirstOccurrenceOf ("file:", false, false)));
+    }
+}
+
 void WavefrontAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     if (auto state = apvts.copyState(); state.isValid())
@@ -231,7 +348,10 @@ void WavefrontAudioProcessor::setStateInformation (const void* data, int sizeInB
 {
     std::unique_ptr<juce::XmlElement> xml (getXmlFromBinary (data, sizeInBytes));
     if (xml != nullptr && xml->hasTagName (apvts.state.getType()))
+    {
         apvts.replaceState (juce::ValueTree::fromXml (*xml));
+        reloadSamplerSource(); // recharge le sample référencé par l'état
+    }
 }
 
 } // namespace wavefront

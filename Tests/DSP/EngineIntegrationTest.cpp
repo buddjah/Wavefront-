@@ -9,6 +9,7 @@
 #include "DSP/DopplerEngine.h"
 #include "DSP/Granular/GranularEngine.h"
 #include "DSP/Effects/EffectsChain.h"
+#include "DSP/Sampler/SamplerEngine.h"
 
 #include <cmath>
 #include <cstdio>
@@ -188,6 +189,41 @@ int main()
         check (st.allFinite, "Effets: sortie entierement finie (tous actifs)");
         check (st.peak < 8.0f, "Effets: sortie bornee");
         check (st.rms > 1.0e-3, "Effets: sortie non silencieuse");
+    }
+
+    // ----------------------------------------------------------- Sampler
+    {
+        // Échantillon synthétique (sinus 1 s @ sr) chargé directement.
+        auto sample = new SamplerEngine::Sample();
+        const int slen = (int) sr;
+        sample->data.setSize (1, slen);
+        for (int i = 0; i < slen; ++i)
+            sample->data.setSample (0, i, (float) std::sin (
+                juce::MathConstants<double>::twoPi * 220.0 * i / sr));
+        sample->sourceSampleRate = sr;
+        sample->name = "test";
+
+        SamplerEngine smp;
+        smp.prepare (sr, 2);
+        smp.setSample (SamplerEngine::Sample::Ptr (sample));
+        SamplerEngine::Parameters spar;
+        spar.enabled = true; spar.gainDb = 0.0f; spar.loop = true; spar.pitchSt = 5.0f;
+        smp.setParameters (spar);
+
+        juce::AudioBuffer<float> buf (2, block);
+        std::vector<float> out;
+        for (int b = 0; b < 200; ++b) // > 1 s -> exerce le bouclage
+        {
+            buf.clear();
+            smp.render (buf); // ajoute dans un buffer vide
+            for (int i = 0; i < block; ++i)
+                out.push_back (buf.getSample (0, i));
+        }
+
+        auto st = analyze (out);
+        check (st.allFinite, "Sampler: sortie entierement finie");
+        check (st.peak < 8.0f, "Sampler: sortie bornee");
+        check (st.rms > 1.0e-3, "Sampler: lecture bouclee non silencieuse");
     }
 
     if (failures == 0)

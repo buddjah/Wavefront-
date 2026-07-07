@@ -39,6 +39,15 @@ namespace granular
     inline constexpr auto pitch    = "granular.pitch";    // demi-tons, transposition des grains
 }
 
+// ---- Sampler (Phase 5+) ----
+namespace sampler
+{
+    inline constexpr auto enable = "sampler.enable";
+    inline constexpr auto gain   = "sampler.gain";   // dB
+    inline constexpr auto loop   = "sampler.loop";
+    inline constexpr auto pitch  = "sampler.pitch";  // demi-tons
+}
+
 // ---- LFOs / Matrice de modulation (Phase 2) ----
 namespace mod
 {

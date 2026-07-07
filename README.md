@@ -21,7 +21,7 @@ Editor 2D**. Projet personnel / portfolio.
 | **2** | Moteur granulaire + matrice de modulation | ✅ |
 | **3** | UI du Path Editor 2D | ✅ |
 | **4** | Direction artistique néon / LookAndFeel | ✅ |
-| **5** | Effets post + presets + validation | ✅ (sampler de fichiers = suite) |
+| **5** | Effets post + sampler + presets + validation | ✅ |
 
 Voir [`docs/PHASES.md`](docs/PHASES.md) pour le détail.
 

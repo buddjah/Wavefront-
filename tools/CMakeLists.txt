@@ -27,6 +27,7 @@ target_compile_definitions(wavefront_render_ui
 
 target_link_libraries(wavefront_render_ui
     PRIVATE
+        WavefrontData
         juce::juce_audio_utils
         juce::juce_dsp
         juce::juce_recommended_config_flags
@@ -52,6 +53,7 @@ target_compile_definitions(wavefront_validate
             JucePlugin_Name="Wavefront")
 target_link_libraries(wavefront_validate
     PRIVATE
+        WavefrontData
         juce::juce_audio_utils
         juce::juce_dsp
         juce::juce_recommended_config_flags

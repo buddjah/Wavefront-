@@ -50,6 +50,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(juce)
 
 # ----------------------------------------------------------------------------
+#  Contenu factory embarqué (samples) -> BinaryData.
+#  Tout WAV déposé dans Resources/Samples/ est embarqué automatiquement.
+# ----------------------------------------------------------------------------
+file(GLOB WAVEFRONT_FACTORY_SAMPLES CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Samples/*.wav")
+juce_add_binary_data(WavefrontData SOURCES ${WAVEFRONT_FACTORY_SAMPLES})
+
+# ----------------------------------------------------------------------------
 #  Cible du plugin — VST3 uniquement (pas de Standalone / AU / AAX).
 # ----------------------------------------------------------------------------
 juce_add_plugin(Wavefront
@@ -92,6 +100,7 @@ target_sources(Wavefront
         Source/DSP/Modulation/ModMatrix.h
         Source/DSP/Effects/EffectsChain.cpp
         Source/DSP/Effects/EffectsChain.h
+        Source/DSP/Sampler/SamplerEngine.h
 
         Source/Presets/PresetManager.cpp
         Source/Presets/PresetManager.h
@@ -115,6 +124,7 @@ target_compile_definitions(Wavefront
 
 target_link_libraries(Wavefront
     PRIVATE
+        WavefrontData
         juce::juce_audio_utils
         juce::juce_dsp
     PUBLIC

@@ -33,8 +33,10 @@ WavefrontAudioProcessorEditor::WavefrontAudioProcessorEditor (WavefrontAudioProc
     addKnob (doppler::amount,        "Doppler",     physics);
     addKnob (doppler::distanceAtten, "Distance",    physics);
     addKnob (doppler::airAbsorption, "Air",         physics);
-    addKnob (granular::mix,          "Grain Mix",   sampler);
-    addKnob (granular::pitch,        "Grain Pitch", sampler);
+    addKnob (params::sampler::gain,  "Smp Gain",    ui::colours::sampler);
+    addKnob (params::sampler::pitch, "Smp Pitch",   ui::colours::sampler);
+    addKnob (granular::mix,          "Grain Mix",   ui::colours::sampler);
+    addKnob (granular::pitch,        "Grain Pitch", ui::colours::sampler);
     addKnob (global::dryWet,         "Dry/Wet",     effects);
     addKnob (global::outputGain,     "Output",      effects);
 
@@ -51,6 +53,31 @@ WavefrontAudioProcessorEditor::WavefrontAudioProcessorEditor (WavefrontAudioProc
 
     addAndMakeVisible (savePresetBtn);
     savePresetBtn.onClick = [this] { saveUserPreset(); };
+
+    // Sampler.
+    samplerToggle.setColour (juce::ToggleButton::tickColourId, ui::colours::sampler);
+    addAndMakeVisible (samplerToggle);
+    samplerAttachment = std::make_unique<ButtonAttachment> (
+        processorRef.getValueTree(), sampler::enable, samplerToggle);
+
+    loopToggle.setColour (juce::ToggleButton::tickColourId, ui::colours::sampler);
+    addAndMakeVisible (loopToggle);
+    loopAttachment = std::make_unique<ButtonAttachment> (
+        processorRef.getValueTree(), sampler::loop, loopToggle);
+
+    addAndMakeVisible (sampleBox);
+    sampleBox.setTextWhenNothingSelected ("Factory sample");
+    sampleBox.onChange = [this] { handleSampleSelection(); };
+    refreshSampleBox();
+
+    addAndMakeVisible (loadSampleBtn);
+    loadSampleBtn.onClick = [this] { chooseSampleFile(); };
+
+    sampleNameLabel.setColour (juce::Label::textColourId, ui::colours::sampler);
+    sampleNameLabel.setFont (juce::Font (juce::FontOptions (11.0f)));
+    sampleNameLabel.setJustificationType (juce::Justification::centredLeft);
+    addAndMakeVisible (sampleNameLabel);
+    updateSampleNameLabel();
 
     setResizable (true, true);
     setResizeLimits (760, 520, 2560, 1600);
@@ -119,7 +146,15 @@ void WavefrontAudioProcessorEditor::resized()
     pathModeBtn.setBounds     (modeArea.removeFromLeft (mw).reduced (2, 0));
     listenerModeBtn.setBounds (modeArea.removeFromLeft (mw).reduced (2, 0));
     measureModeBtn.setBounds  (modeArea.reduced (2, 0));
-    granularToggle.setBounds  (modeRow.removeFromLeft (120).reduced (6, 2));
+    granularToggle.setBounds  (modeRow.removeFromLeft (110).reduced (6, 2));
+
+    // Bande sampler.
+    auto samplerRow = area.removeFromBottom (30).reduced (4, 2);
+    samplerToggle.setBounds (samplerRow.removeFromLeft (90));
+    loopToggle.setBounds    (samplerRow.removeFromRight (70));
+    loadSampleBtn.setBounds (samplerRow.removeFromRight (80).reduced (2, 1));
+    sampleBox.setBounds     (samplerRow.removeFromLeft (180).reduced (2, 1));
+    sampleNameLabel.setBounds (samplerRow.reduced (6, 0));
 
     // Path editor : reste de la zone.
     pathEditor.setBounds (area.reduced (10));
@@ -194,6 +229,52 @@ void WavefrontAudioProcessorEditor::saveUserPreset()
             }
             saveDialog.reset();
         }), false);
+}
+
+// ---- Sampler --------------------------------------------------------------
+
+void WavefrontAudioProcessorEditor::refreshSampleBox()
+{
+    sampleBox.clear (juce::dontSendNotification);
+    const auto names = processorRef.getFactorySampleNames();
+    for (int i = 0; i < names.size(); ++i)
+        sampleBox.addItem (names[i], i + 1);
+}
+
+void WavefrontAudioProcessorEditor::handleSampleSelection()
+{
+    const int idx = sampleBox.getSelectedId() - 1;
+    if (idx >= 0)
+    {
+        processorRef.loadFactorySample (idx);
+        updateSampleNameLabel();
+    }
+}
+
+void WavefrontAudioProcessorEditor::chooseSampleFile()
+{
+    fileChooser = std::make_unique<juce::FileChooser> (
+        "Charger un sample", juce::File(), "*.wav;*.aif;*.aiff;*.flac");
+
+    const auto chooserFlags = juce::FileBrowserComponent::openMode
+                            | juce::FileBrowserComponent::canSelectFiles;
+
+    fileChooser->launchAsync (chooserFlags, [this] (const juce::FileChooser& fc)
+    {
+        const auto file = fc.getResult();
+        if (file.existsAsFile())
+        {
+            processorRef.loadSampleFile (file);
+            sampleBox.setSelectedId (0, juce::dontSendNotification);
+            updateSampleNameLabel();
+        }
+    });
+}
+
+void WavefrontAudioProcessorEditor::updateSampleNameLabel()
+{
+    const auto name = processorRef.getLoadedSampleName();
+    sampleNameLabel.setText (name.isEmpty() ? "(aucun sample)" : name, juce::dontSendNotification);
 }
 
 } // namespace wavefront

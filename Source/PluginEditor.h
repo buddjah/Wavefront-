@@ -41,6 +41,10 @@ private:
     void refreshPresetBox();
     void handlePresetSelection();
     void saveUserPreset();
+    void refreshSampleBox();
+    void handleSampleSelection();
+    void chooseSampleFile();
+    void updateSampleNameLabel();
 
     WavefrontAudioProcessor& processorRef;
 
@@ -55,6 +59,15 @@ private:
 
     juce::ToggleButton granularToggle { "Granular" };
     std::unique_ptr<ButtonAttachment> granularAttachment;
+
+    // Sampler.
+    juce::ToggleButton samplerToggle { "Sampler" };
+    juce::ToggleButton loopToggle { "Loop" };
+    std::unique_ptr<ButtonAttachment> samplerAttachment, loopAttachment;
+    juce::ComboBox   sampleBox;
+    juce::TextButton loadSampleBtn { "Load..." };
+    juce::Label      sampleNameLabel;
+    std::unique_ptr<juce::FileChooser> fileChooser;
 
     std::vector<std::unique_ptr<Knob>> knobs;
 

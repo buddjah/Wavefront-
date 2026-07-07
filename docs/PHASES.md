@@ -65,12 +65,25 @@ Livré :
   multi-blocs, entrées pathologiques, balayage de paramètres, round-trip
   d'état) — cible CTest `wavefront_plugin_validation`.
 
-### Reste à faire (suite de la Phase 5)
+### Sampler de fichiers ✅
 
-- **Sampler de fichiers** : lecture d'échantillons audio chargés (glisser un
-  WAV, le faire « voyager » sur la trajectoire) — distinct du moteur
-  granulaire actuel qui granule le signal d'entrée. À spécifier/produire avec
-  le contenu factory (samples), laissé volontairement en aval dans le cahier
-  des charges.
-- Contenu factory (banque de samples, presets additionnels).
+- `SamplerEngine` : lecteur d'échantillons thread-safe (SpinLock + référence
+  comptée) qui rejoue un fichier en boucle avec pitch (interpolation Lagrange
+  réutilisée). Sa sortie est injectée comme *source* dans la chaîne : le sample
+  « voyage » ensuite sur la trajectoire via le Doppler. Wavefront s'utilise
+  donc aussi comme **instrument** (sans entrée hôte).
+- Chargement : fichiers utilisateur (WAV/AIFF/FLAC via `FileChooser`) **ou**
+  samples factory embarqués (`BinaryData`). La source choisie est persistée
+  dans l'état (`samplerSource`) et rechargée à l'ouverture.
+- **Contenu factory** : 3 samples procéduraux libres de droits générés par
+  `tools/generate_factory_samples.py` (sweep sinus, accord pad, sweep de bruit),
+  embarqués automatiquement (tout WAV de `Resources/Samples/`).
+- UI : bande sampler (toggle, sélecteur factory, bouton Load, Loop) + rotatifs
+  Smp Gain / Smp Pitch.
+
+### Reste à faire
+
+- Contenu factory additionnel (banque de samples, presets supplémentaires).
 - Passage `pluginval --strictness-level 10` sous Windows.
+- (Optionnel) modulation à taux échantillon pour les destinations critiques
+  (actuellement taux bloc, déjà lissé).
