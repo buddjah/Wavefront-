@@ -1,9 +1,12 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <array>
 #include "Params/Parameters.h"
 #include "DSP/PathModel.h"
 #include "DSP/DopplerEngine.h"
+#include "DSP/Granular/GranularEngine.h"
+#include "DSP/Modulation/ModMatrix.h"
 
 namespace wavefront
 {
@@ -51,12 +54,14 @@ public:
     dsp::DopplerEngine& getDopplerEngine() noexcept { return dopplerEngine; }
 
 private:
-    void pullParameters() noexcept;
+    void pullParameters (int numSamples) noexcept;
 
     juce::AudioProcessorValueTreeState apvts;
 
-    dsp::PathModel     pathModel;
-    dsp::DopplerEngine dopplerEngine;
+    dsp::PathModel      pathModel;
+    dsp::DopplerEngine  dopplerEngine;
+    dsp::GranularEngine granularEngine;
+    dsp::ModMatrix      modMatrix;
 
     juce::AudioBuffer<float> dryBuffer;
     juce::SmoothedValue<float> dryWetSmoothed, outputGainSmoothed;
@@ -72,6 +77,24 @@ private:
     std::atomic<float>* pListenerY = nullptr;
     std::atomic<float>* pDryWet = nullptr;
     std::atomic<float>* pOutputGain = nullptr;
+
+    // Granulaire.
+    std::atomic<float>* pGrEnable = nullptr;
+    std::atomic<float>* pGrMix = nullptr;
+    std::atomic<float>* pGrSize = nullptr;
+    std::atomic<float>* pGrDensity = nullptr;
+    std::atomic<float>* pGrSpray = nullptr;
+    std::atomic<float>* pGrPitch = nullptr;
+
+    // LFOs & matrice (tableaux de pointeurs bruts).
+    std::array<std::atomic<float>*, dsp::ModMatrix::kNumLfos>  pLfoRate {};
+    std::array<std::atomic<float>*, dsp::ModMatrix::kNumLfos>  pLfoDepth {};
+    std::array<std::atomic<float>*, dsp::ModMatrix::kNumLfos>  pLfoShape {};
+    std::array<std::atomic<float>*, dsp::ModMatrix::kNumLfos>  pLfoBipolar {};
+    std::array<std::atomic<float>*, dsp::ModMatrix::kNumSlots> pSlotSource {};
+    std::array<std::atomic<float>*, dsp::ModMatrix::kNumSlots> pSlotDest {};
+    std::array<std::atomic<float>*, dsp::ModMatrix::kNumSlots> pSlotDepth {};
+    std::array<std::atomic<float>*, dsp::ModMatrix::kNumSlots> pSlotSmooth {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WavefrontAudioProcessor)
 };

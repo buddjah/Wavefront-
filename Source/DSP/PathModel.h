@@ -31,7 +31,7 @@ public:
 
     PathModel()
     {
-        setDefaultCircle();
+        setDefaultShape();
         rebuild();
     }
 
@@ -56,15 +56,20 @@ public:
         }
     }
 
-    void setDefaultCircle()
+    /** Trajectoire par défaut : ellipse (rayons X/Y différents) centrée sur
+        l'auditeur. La distance à l'auditeur varie donc au cours du cycle, ce qui
+        produit un effet Doppler audible dès l'ouverture du plugin (un cercle
+        parfaitement centré donnerait une distance constante, donc aucun Doppler). */
+    void setDefaultShape()
     {
         controlPoints.clear();
-        const int n = 6;
-        const float r = 0.72f;
+        const int n = 8;
+        const float rx = 0.88f;
+        const float ry = 0.34f;
         for (int i = 0; i < n; ++i)
         {
             const float a = juce::MathConstants<float>::twoPi * (float) i / (float) n;
-            controlPoints.push_back ({ r * std::cos (a), r * std::sin (a) });
+            controlPoints.push_back ({ rx * std::cos (a), ry * std::sin (a) });
         }
     }
 

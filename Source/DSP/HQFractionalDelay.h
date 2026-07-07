@@ -7,6 +7,18 @@
 namespace wavefront::dsp
 {
 
+/** Noyau d'interpolation de Lagrange 4 points (3e ordre).
+    f dans [0,1] situe le point recherché entre x0 et x1 ; xm1 et x2 sont les
+    voisins. Partagé par la ligne à retard et le moteur granulaire. */
+inline float lagrange4 (float xm1, float x0, float x1, float x2, float f) noexcept
+{
+    const float c0 = x0;
+    const float c1 = x1 - (1.0f / 3.0f) * xm1 - 0.5f * x0 - (1.0f / 6.0f) * x2;
+    const float c2 = 0.5f * (xm1 + x1) - x0;
+    const float c3 = (1.0f / 6.0f) * (x2 - xm1) + 0.5f * (x0 - x1);
+    return ((c3 * f + c2) * f + c1) * f + c0;
+}
+
 /**
     Ligne à retard fractionnaire haute qualité, mono, avec interpolation de
     Lagrange 4 points (3e ordre).
@@ -81,14 +93,12 @@ public:
         const float x1  = buffer[(base + buffer.size() - 1) & mask];
         const float x2  = buffer[(base + buffer.size() - 2) & mask];
 
-        // Interpolation de Lagrange 4 points (3e ordre), f dans [0,1] entre x0 et x1.
-        const float c0 = x0;
-        const float c1 = x1 - (1.0f / 3.0f) * xm1 - 0.5f * x0 - (1.0f / 6.0f) * x2;
-        const float c2 = 0.5f * (xm1 + x1) - x0;
-        const float c3 = (1.0f / 6.0f) * (x2 - xm1) + 0.5f * (x0 - x1);
-
-        return ((c3 * f + c2) * f + c1) * f + c0;
+        return lagrange4 (xm1, x0, x1, x2, f);
     }
+
+    /** Accès à la taille interne (puissance de 2) — utile aux lecteurs externes
+        (moteur granulaire) qui réutilisent le buffer via readAt(). */
+    int getBufferSize() const noexcept { return static_cast<int> (buffer.size()); }
 
 private:
     std::vector<float> buffer;

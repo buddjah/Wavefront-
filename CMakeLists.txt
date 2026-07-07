@@ -86,6 +86,10 @@ target_sources(Wavefront
         Source/DSP/PathModel.h
         Source/DSP/DopplerEngine.cpp
         Source/DSP/DopplerEngine.h
+
+        Source/DSP/Granular/GranularEngine.h
+        Source/DSP/Modulation/LFO.h
+        Source/DSP/Modulation/ModMatrix.h
 )
 
 target_compile_definitions(Wavefront
